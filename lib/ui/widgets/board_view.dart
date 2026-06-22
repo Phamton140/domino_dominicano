@@ -6,12 +6,21 @@ import '../../engine/models/player.dart';
 import 'domino_tile_widget.dart';
 import '../theme.dart';
 
+/// Tamaño lógico de una ficha en la mesa, en píxeles lógicos.
+///
+/// Es un valor FIJO: las fichas no cambian de tamaño ni al añadirse
+/// nuevas fichas a la cadena ni al redimensionarse el área disponible.
+/// La cámara virtual se desplaza sobre la cadena para que entre toda
+/// en pantalla, pero las fichas conservan siempre sus dimensiones.
+const double kBoardTileSquareSize = 26.0;
+
 /// Vista de la mesa de dominó.
 ///
 /// Recibe los [moves] de la ronda actual y el [starterPosition] y dibuja
-/// cada ficha en su posición calculada por [BoardLayout]. El widget
-/// encuentra automáticamente el [squareSize] que hace que la cadena
-/// completa quepa en el área disponible.
+/// cada ficha en su posición calculada por [BoardLayout] usando un
+/// [kBoardTileSquareSize] constante. La cadena puede exceder el área
+/// visible: en ese caso se centra dentro de un `SingleChildScrollView`
+/// y el usuario puede hacer scroll/pinch para verla.
 class BoardView extends StatelessWidget {
   final List<Move> moves;
   final PlayerPosition starterPosition;
@@ -28,110 +37,50 @@ class BoardView extends StatelessWidget {
       return const _EmptyBoard();
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return _BoardPainter(
-          moves: moves,
-          starterPosition: starterPosition,
-          availableSize: Size(constraints.maxWidth, constraints.maxHeight),
-        );
-      },
-    );
-  }
-}
-
-class _BoardPainter extends StatelessWidget {
-  final List<Move> moves;
-  final PlayerPosition starterPosition;
-  final Size availableSize;
-
-  const _BoardPainter({
-    required this.moves,
-    required this.starterPosition,
-    required this.availableSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Búsqueda binaria del mayor squareSize que haga que la cadena quepa.
-    double lo = 4;
-    double hi = 200;
-    double? best;
-
-    for (int i = 0; i < 20; i++) {
-      final mid = (lo + hi) / 2;
-      if (_fits(mid)) {
-        best = mid;
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-      if (hi - lo < 0.5) break;
-    }
-
-    final squareSize = best ?? 20.0;
-    return _drawWith(squareSize);
-  }
-
-  bool _fits(double squareSize) {
     final layout = BoardLayout(
       moves: moves,
       starterPosition: starterPosition,
-      squareSize: squareSize,
-      tableBounds: Rect.fromLTWH(0, 0, availableSize.width, availableSize.height),
-    );
-    try {
-      final gs = layout.compute();
-      final b = _unionBounds(gs);
-      return b.width <= availableSize.width && b.height <= availableSize.height;
-    } on StateError {
-      return false;
-    }
-  }
-
-  Widget _drawWith(double squareSize) {
-    final layout = BoardLayout(
-      moves: moves,
-      starterPosition: starterPosition,
-      squareSize: squareSize,
-      tableBounds: Rect.fromLTWH(0, 0, availableSize.width, availableSize.height),
+      squareSize: kBoardTileSquareSize,
+      tableBounds: const Rect.fromLTWH(0, 0, 2000, 2000),
     );
     final geometries = layout.compute();
-    final bounds = _unionBounds(geometries);
 
-    return Center(
-      child: SizedBox(
-        width: bounds.width,
-        height: bounds.height,
-        child: Stack(
-          children: [
-            // El tapete se extiende a la cadena dejando un pequeño margen.
-            Positioned.fill(
-              child: Container(
-                margin: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: DominoTheme.tableGreen,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: DominoTheme.tableBorder,
-                    width: 2,
+    final bounds = _unionBounds(geometries);
+    const margin = 6.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: DominoTheme.tableGreen,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: DominoTheme.tableBorder, width: 2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: InteractiveViewer(
+          minScale: 0.4,
+          maxScale: 2.5,
+          boundaryMargin: const EdgeInsets.all(200),
+          child: SizedBox(
+            width: bounds.width + margin * 2,
+            height: bounds.height + margin * 2,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                for (final g in geometries)
+                  Positioned(
+                    left: g.center.dx - g.width / 2 - bounds.left + margin,
+                    top: g.center.dy - g.height / 2 - bounds.top + margin,
+                    width: g.width,
+                    height: g.height,
+                    child: DominoTileWidget.face(
+                      tile: g.move.tile,
+                      orientation: g.orientation,
+                      squareSize: g.squareSize,
+                    ),
                   ),
-                ),
-              ),
+              ],
             ),
-            for (final g in geometries)
-              Positioned(
-                left: g.center.dx - g.width / 2 - bounds.left,
-                top: g.center.dy - g.height / 2 - bounds.top,
-                width: g.width,
-                height: g.height,
-                child: DominoTileWidget.face(
-                  tile: g.move.tile,
-                  orientation: g.orientation,
-                  squareSize: g.squareSize,
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
