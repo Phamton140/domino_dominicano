@@ -286,44 +286,6 @@ class Round {
     }
   }
 
-  BoardSide _resolvePlacementSide(DominoTile tile, BoardSide? chosenSide) {
-    if (board.isEmpty) return BoardSide.right;
-
-    // Doble punta: se fuerza a jugar por la derecha.
-    if (board.endsAreEqual) return BoardSide.right;
-
-    final canLeft = board.canPlaceOnLeft(tile);
-    final canRight = board.canPlaceOnRight(tile);
-
-    if (canLeft && canRight) {
-      if (chosenSide == null) {
-        throw ArgumentError(
-          'Se debe especificar el lado cuando la ficha encaja en ambos extremos',
-        );
-      }
-      return chosenSide;
-    }
-
-    if (canRight) return BoardSide.right;
-    if (canLeft) return BoardSide.left;
-
-    throw StateError('La ficha $tile no puede colocarse en ningún extremo');
-  }
-
-  /// Resuelve el lado válido para una ficha, devolviendo el lado preferido
-  /// cuando no hay ambigüedad y forzando la derecha en doble punta.
-  BoardSide _resolveSide(DominoTile tile) {
-    if (board.isEmpty || board.endsAreEqual) return BoardSide.right;
-
-    final canLeft = board.canPlaceOnLeft(tile);
-    final canRight = board.canPlaceOnRight(tile);
-
-    if (canRight) return BoardSide.right;
-    if (canLeft) return BoardSide.left;
-
-    throw StateError('La ficha $tile no puede colocarse en ningún extremo');
-  }
-
   // --- Avance de turnos ---
 
   void _advanceTurn() {
