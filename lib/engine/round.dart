@@ -38,6 +38,7 @@ class Round {
   int _consecutivePasses = 0;
   int _movesCount = 0;
   bool _startBonusEvaluated = false;
+  final List<Move> _movesHistory = [];
   RoundResult? _result;
   ImmediateBonus? _pendingImmediateBonus;
 
@@ -64,6 +65,8 @@ class Round {
 
   RoundResult? get result => _result;
 
+  List<Move> get movesHistory => List.unmodifiable(_movesHistory);
+
   ImmediateBonus? get pendingImmediateBonus => _pendingImmediateBonus;
 
   void clearPendingImmediateBonus() {
@@ -88,6 +91,7 @@ class Round {
     _consecutivePasses = 0;
     _movesCount = 0;
     _startBonusEvaluated = false;
+    _movesHistory.clear();
     _result = null;
     _pendingImmediateBonus = null;
   }
@@ -163,6 +167,15 @@ class Round {
       throw ArgumentError('Lado $side no válido para la ficha $tile');
     }
 
+    final bool tileWasSwapped;
+    if (board.isEmpty) {
+      tileWasSwapped = false;
+    } else if (side == BoardSide.left) {
+      tileWasSwapped = tile.left == board.leftEnd;
+    } else {
+      tileWasSwapped = tile.left != board.rightEnd;
+    }
+
     if (board.isEmpty) {
       board.placeFirst(tile);
     } else if (side == BoardSide.left) {
@@ -170,6 +183,13 @@ class Round {
     } else {
       board.placeOnRight(tile);
     }
+
+    _movesHistory.add(Move(
+      player: player,
+      tile: tile,
+      side: side,
+      tileWasSwapped: tileWasSwapped,
+    ));
 
     player.removeTile(tile);
     _movesCount++;
