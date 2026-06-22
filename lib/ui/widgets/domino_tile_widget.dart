@@ -102,7 +102,7 @@ class DominoTileWidget extends StatelessWidget {
         color: _faceColor(),
         border: Border.all(
           color: highlighted ? DominoTheme.selectedTile : DominoTheme.tileBorder,
-          width: highlighted ? 3 : 2,
+          width: highlighted ? 2 : 0.5,
         ),
         borderRadius: BorderRadius.circular(squareSize * 0.12),
         boxShadow: [

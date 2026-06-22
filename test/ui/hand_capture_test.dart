@@ -24,14 +24,9 @@ void main() {
       teamId: 'A',
     );
     final tiles = <DominoTile>[
-      // Simulación del escenario reportado: 5|6 + 3|5 conectado.
-      // La 3|5 entra por la derecha; el motor la swapea para que el 5
-      // (que era right) conecte con el 6 de la 5|6. Espera, 3|5 no
-      // conecta con 6. Cambiamos: 6|5 sale primero, luego 5|3 conecta
-      // por la derecha (sin swap). Luego 3|4 conecta.
-      const DominoTile(6, 5),
-      const DominoTile(5, 3),
+      const DominoTile(6, 6),
       const DominoTile(3, 4),
+      const DominoTile(0, 1),
     ];
 
     final boundaryKey = GlobalKey();
@@ -46,12 +41,12 @@ void main() {
               key: boundaryKey,
               child: SizedBox(
                 width: 800,
-                height: 120,
+                height: 200,
                 child: HandView(
                   player: player,
                   tiles: tiles,
                   faceUp: true,
-                  squareSize: 30,
+                  squareSize: 50,
                   isCurrentPlayer: true,
                 ),
               ),
