@@ -76,6 +76,7 @@ class BoardView extends StatelessWidget {
                       tile: g.move.tile,
                       orientation: g.orientation,
                       squareSize: g.squareSize,
+                      swapped: g.move.tileWasSwapped,
                     ),
                   ),
               ],

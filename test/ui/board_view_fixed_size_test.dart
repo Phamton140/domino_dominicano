@@ -21,7 +21,7 @@ void main() {
 
   /// Captura el squareSize de cada ficha renderizada dentro de un
   /// BoardView dado el conjunto de moves.
-  List<double> _tileSquareSizes(WidgetTester tester) {
+  List<double> tileSquareSizes(WidgetTester tester) {
     return tester
         .widgetList<DominoTileWidget>(find.byType(DominoTileWidget))
         .map((w) => w.squareSize)
@@ -46,7 +46,7 @@ void main() {
       ),
     );
 
-    final sizes = _tileSquareSizes(tester);
+    final sizes = tileSquareSizes(tester);
     expect(sizes, hasLength(1));
     expect(sizes.first, kBoardTileSquareSize);
   });
@@ -78,7 +78,7 @@ void main() {
       ),
     );
 
-    final sizes = _tileSquareSizes(tester);
+    final sizes = tileSquareSizes(tester);
     expect(sizes, hasLength(5));
     // TODAS las fichas tienen exactamente el mismo squareSize.
     for (final s in sizes) {

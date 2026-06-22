@@ -13,6 +13,10 @@ import '../theme.dart';
 /// con los dos valores apilados verticalmente, independientemente de la
 /// orientación. Se usa en la mano local para que las fichas se vean más
 /// "rellenas" sin la proporción 1:2 de una ficha real de dominó.
+///
+/// Si [swapped] es true, la ficha fue invertida por el motor para
+/// conectar con el extremo abierto. En ese caso, los pips se dibujan
+/// en el orden visual swap (left↔right).
 class DominoTileWidget extends StatelessWidget {
   final DominoTile? tile;
   final TileOrientation orientation;
@@ -20,6 +24,7 @@ class DominoTileWidget extends StatelessWidget {
   final bool highlighted;
   final bool dim;
   final bool compact;
+  final bool swapped;
 
   const DominoTileWidget({
     super.key,
@@ -29,6 +34,7 @@ class DominoTileWidget extends StatelessWidget {
     this.highlighted = false,
     this.dim = false,
     this.compact = false,
+    this.swapped = false,
   });
 
   /// Constructor conveniente para dibujar la mano del jugador local
@@ -40,6 +46,7 @@ class DominoTileWidget extends StatelessWidget {
     required double squareSize,
     bool highlighted = false,
     bool compact = false,
+    bool swapped = false,
   }) {
     return DominoTileWidget(
       key: key,
@@ -48,6 +55,7 @@ class DominoTileWidget extends StatelessWidget {
       squareSize: squareSize,
       highlighted: highlighted,
       compact: compact,
+      swapped: swapped,
     );
   }
 
@@ -107,8 +115,8 @@ class DominoTileWidget extends StatelessWidget {
         ],
       ),
       child: tile == null ? const SizedBox.shrink() : _PipsLayout(
-        left: tile!.left,
-        right: tile!.right,
+        left: swapped ? tile!.right : tile!.left,
+        right: swapped ? tile!.left : tile!.right,
         squareSize: squareSize,
         orientation: orientation,
         compact: compact,

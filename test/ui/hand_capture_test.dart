@@ -24,10 +24,14 @@ void main() {
       teamId: 'A',
     );
     final tiles = <DominoTile>[
-      const DominoTile(6, 6),
+      // Simulación del escenario reportado: 5|6 + 3|5 conectado.
+      // La 3|5 entra por la derecha; el motor la swapea para que el 5
+      // (que era right) conecte con el 6 de la 5|6. Espera, 3|5 no
+      // conecta con 6. Cambiamos: 6|5 sale primero, luego 5|3 conecta
+      // por la derecha (sin swap). Luego 3|4 conecta.
+      const DominoTile(6, 5),
       const DominoTile(5, 3),
-      const DominoTile(0, 1),
-      const DominoTile(2, 4),
+      const DominoTile(3, 4),
     ];
 
     final boundaryKey = GlobalKey();
