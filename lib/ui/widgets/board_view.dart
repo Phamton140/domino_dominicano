@@ -37,69 +37,87 @@ class BoardView extends StatelessWidget {
       return const _EmptyBoard();
     }
 
-    final layout = BoardLayout(
-      moves: moves,
-      starterPosition: starterPosition,
-      squareSize: kBoardTileSquareSize,
-      tableBounds: const Rect.fromLTWH(0, 0, 2000, 2000),
-    );
-    final geometries = layout.compute();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // El BoardLayout coloca la primera ficha en (0, 0) en el espacio
+        // virtual. Las siguientes se calculan relativas a ella.
+        final layout = BoardLayout(
+          moves: moves,
+          starterPosition: starterPosition,
+          squareSize: kBoardTileSquareSize,
+          tableBounds: const Rect.fromLTWH(-2000, -2000, 4000, 4000),
+        );
+        final geometries = layout.compute();
 
-    final bounds = _unionBounds(geometries);
-    const margin = 6.0;
+        // El área de juego es FIJA: ocupa todo el espacio disponible
+        // y NO cambia de tamaño al añadirse fichas. La primera ficha
+        // siempre queda en su centro, sin importar cuántas fichas se
+        // coloquen. Si la cadena excede el área, el InteractiveViewer
+        // permite pan/zoom.
+        final areaWidth = constraints.maxWidth;
+        final areaHeight = constraints.maxHeight;
+        final centerX = areaWidth / 2;
+        final centerY = areaHeight / 2;
+        final firstTileW = geometries.first.width;
+        final firstTileH = geometries.first.height;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: DominoTheme.tableGreen,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: DominoTheme.tableBorder, width: 2),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: InteractiveViewer(
-          minScale: 0.4,
-          maxScale: 2.5,
-          boundaryMargin: const EdgeInsets.all(200),
-          child: SizedBox(
-            width: bounds.width + margin * 2,
-            height: bounds.height + margin * 2,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                for (final g in geometries)
-                  Positioned(
-                    left: g.center.dx - g.width / 2 - bounds.left + margin,
-                    top: g.center.dy - g.height / 2 - bounds.top + margin,
-                    width: g.width,
-                    height: g.height,
-                    child: DominoTileWidget.face(
-                      tile: g.move.tile,
-                      orientation: g.orientation,
-                      squareSize: g.squareSize,
-                      swapped: g.move.tileWasSwapped,
+        return Container(
+          decoration: BoxDecoration(
+            color: DominoTheme.tableGreen,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: DominoTheme.tableBorder, width: 2),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: InteractiveViewer(
+              minScale: 0.4,
+              maxScale: 2.5,
+              boundaryMargin: const EdgeInsets.all(200),
+              child: SizedBox(
+                width: areaWidth,
+                height: areaHeight,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (final g in geometries)
+                      Positioned(
+                        // Posición relativa al centro del área. La
+                        // primera ficha (g.center = 0, 0) queda en
+                        // (centerX, centerY). Las siguientes se
+                        // posicionan en torno a ese centro.
+                        left: centerX + g.center.dx - g.width / 2,
+                        top: centerY + g.center.dy - g.height / 2,
+                        width: g.width,
+                        height: g.height,
+                        child: DominoTileWidget.face(
+                          tile: g.move.tile,
+                          orientation: g.orientation,
+                          squareSize: g.squareSize,
+                          swapped: g.move.tileWasSwapped,
+                        ),
+                      ),
+                    // Marcar el centro del área con un widget invisible
+                    // para anclar el InteractiveViewer ahí. Sin esto,
+                    // el viewer centra el contenido en su tamaño
+                    // intrínseco, que sería 0 (las Positioned con left
+                    // negativos no aportan tamaño).
+                    Positioned(
+                      left: centerX - firstTileW / 2,
+                      top: centerY - firstTileH / 2,
+                      width: firstTileW,
+                      height: firstTileH,
+                      child: const IgnorePointer(
+                        child: SizedBox.shrink(),
+                      ),
                     ),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
-  }
-
-  Rect _unionBounds(List<TileGeometry> geometries) {
-    double left = double.infinity;
-    double top = double.infinity;
-    double right = -double.infinity;
-    double bottom = -double.infinity;
-    for (final g in geometries) {
-      final b = g.bounds;
-      if (b.left < left) left = b.left;
-      if (b.top < top) top = b.top;
-      if (b.right > right) right = b.right;
-      if (b.bottom > bottom) bottom = b.bottom;
-    }
-    return Rect.fromLTRB(left, top, right, bottom);
   }
 }
 

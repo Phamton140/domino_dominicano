@@ -230,6 +230,7 @@ class BoardLayout {
 
   /// Orientación de [tile] cuando se coloca saliendo de [end].
   ///
+  /// Reglas:
   /// - Doble: perpendicular a la última ficha del extremo.
   /// - Ficha normal: sigue la dirección de crecimiento (eje largo en la
   ///   dirección de avance).
