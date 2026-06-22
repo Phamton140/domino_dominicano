@@ -9,7 +9,7 @@ motor de reglas y puntuación.
 
 1. **Fase 1 — Motor de reglas y puntuación** ✅
 2. **Fase 2 — Motor de mesa y colocación de fichas** ✅
-3. Fase 3 — Interfaz de usuario
+3. **Fase 3 — Interfaz de usuario local** ✅
 4. Fase 4 — Partidas multijugador
 5. Fase 5 — Bots y reconexión
 6. Fase 6 — Persistencia y optimización
@@ -83,6 +83,59 @@ el extremo abierto. El `BoardLayout` consume ese flag a través de
 - El layout no optimiza para minimizar el área ocupada; siempre crece en
   la dirección natural antes de girar.
 
+## Fase 3: Interfaz de usuario local
+
+La Fase 3 añade la capa visual sobre el motor: pantalla de inicio,
+mesa renderizada con `BoardLayout`, manos de los 4 jugadores, marcador
+de equipos y diálogos de fin de ronda y de partida.
+
+### Estructura
+
+```
+lib/ui/
+├── theme.dart                    # Paleta y ThemeData
+├── game_controller.dart          # ChangeNotifier que envuelve Game + Round
+├── bots/
+│   └── random_bot.dart           # Bot dummy: jugada válida aleatoria
+├── widgets/
+│   ├── domino_tile_widget.dart   # Dibuja una ficha (cara o lomo)
+│   ├── board_view.dart           # Mesa que escala y posiciona las fichas
+│   ├── hand_view.dart            # Mano de un jugador (local u oponente)
+│   └── score_panel.dart          # Marcador con los dos equipos
+└── screens/
+    ├── home_screen.dart          # Botón "Nueva partida"
+    └── game_screen.dart          # Partida en curso con interacción
+```
+
+### GameController
+
+`GameController` es un `ChangeNotifier` que:
+
+- Mantiene la instancia de `Game` y expone una vista inmutable del
+  estado actual (`currentPlayer`, `validMovesForLocal`, `currentMoves`,
+  `phase`).
+- Implementa `playTile(DominoTile)` y `pass()`, delegando en el motor.
+- Aplica automáticamente las bonificaciones pendientes (pases de salida
+  y pase redondo) después de cada acción.
+- Programa con un `Timer` la jugada de los bots con un retardo de
+  600 ms para hacer la partida visible paso a paso.
+- Expone `botsEnabled` para desactivar los bots en depuración.
+
+### Bots
+
+`RandomBot` es un bot dummy: juega la primera (o una al azar, según se
+inyecte un `Random`) jugada válida disponible. Será reemplazado por
+bots con estrategia real en la fase 5.
+
+### Limitaciones conocidas
+
+- No hay animaciones de colocación de fichas; la mesa se redibuja
+  instantáneamente al cambiar el estado.
+- Las fichas del local se redimensionan ligeramente cuando no son
+  jugadas válidas, pero no hay resaltado del lado (izq/der) cuando
+  ambos son válidos en una doble punta.
+- No hay soporte para deshacer jugadas.
+
 ## Ejecutar tests
 
 ```bash
@@ -100,6 +153,14 @@ lib/
 │   ├── board_layout.dart# Geometría visual de la mesa (Fase 2)
 │   ├── round.dart       # Lógica de una ronda
 │   └── game.dart        # Lógica de la partida
+├── ui/                  # Interfaz de usuario (Fase 3)
+│   ├── theme.dart
+│   ├── game_controller.dart
+│   ├── bots/
+│   ├── widgets/
+│   └── screens/
+└── main.dart            # Arranque de la app
 test/
-└── engine/              # Tests unitarios del motor
+├── engine/              # Tests unitarios del motor
+└── ui/                  # Tests de widgets y del controller
 ```
