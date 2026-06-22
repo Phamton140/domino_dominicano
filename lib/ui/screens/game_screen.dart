@@ -162,7 +162,7 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                   // Mano local.
                   SizedBox(
-                    height: 88,
+                    height: 80,
                     child: _localHand(c),
                   ),
                 ],

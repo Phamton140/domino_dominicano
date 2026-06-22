@@ -107,6 +107,7 @@ class _FaceUpHand extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (final tile in tiles) ...[
             _HandTileButton(
@@ -145,7 +146,7 @@ class _HandTileButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final tileWidget = DominoTileWidget.face(
       tile: tile,
-      orientation: TileOrientation.horizontal,
+      orientation: TileOrientation.vertical,
       squareSize: squareSize,
       highlighted: isSelected,
     );
@@ -161,6 +162,8 @@ class _HandTileButton extends StatelessWidget {
             ),
           );
 
+    // Ficha seleccionada: padding superior 0 (queda al tope).
+    // Ficha no seleccionada: padding superior 4 (se "hunde" hacia abajo).
     return Padding(
       padding: EdgeInsets.only(top: isSelected ? 0 : 4),
       child: wrapped,
