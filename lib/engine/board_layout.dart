@@ -99,11 +99,18 @@ class BoardLayout {
   final double squareSize;
   final Rect tableBounds;
 
+  /// Si es true, las fichas pueden exceder [tableBounds] sin lanzar
+  /// error (útil para renderizar cadenas largas en áreas pequeñas con
+  /// scroll/zoom). Si es false (por defecto), se lanza [StateError]
+  /// cuando no hay hueco.
+  final bool allowOverflow;
+
   BoardLayout({
     required this.moves,
     required this.starterPosition,
     required this.squareSize,
     required this.tableBounds,
+    this.allowOverflow = false,
   });
 
   /// Calcula la geometría de todas las fichas jugadas.
@@ -201,6 +208,14 @@ class BoardLayout {
         return geometry;
       }
 
+      // Si se permite overflow, salir del loop cuando ya probamos
+      // todas las direcciones y aún así no cabe. En ese caso,
+      // colocamos la ficha en la última posición intentada aunque
+      // se salga de los límites.
+      if (allowOverflow && attempts == 3) {
+        return geometry;
+      }
+
       _rotateEnd(end);
     }
 
@@ -210,18 +225,37 @@ class BoardLayout {
   }
 
   /// Rota la dirección de crecimiento 90° en sentido antihorario y
-  /// reposiciona el punto de conexión sobre la esquina correspondiente
-  /// de la última ficha del extremo.
+  /// reposiciona el punto de conexión para que la siguiente ficha
+  /// toque a la última colocada.
+  ///
+  /// Patrón antihorario (igual que las manecillas de un reloj vistas
+  /// en un espejo):
+  /// - `right` → `up`   → connectionPoint en el borde superior.
+  /// - `up`    → `left` → connectionPoint en el borde izquierdo.
+  /// - `left`  → `down` → connectionPoint en el borde inferior.
+  /// - `down`  → `right` → connectionPoint en el borde derecho.
+  ///
+  /// El connectionPoint se coloca en el centro del borde de la última
+  /// ficha en la NUEVA dirección de crecimiento, de modo que la
+  /// siguiente ficha se conecte tocando ese borde.
   void _rotateEnd(_EndState end) {
     final last = end.lastGeometry;
-    final halfLong = last.squareSize;
-    final halfShort = last.squareSize / 2;
+    final halfWidth = last.width / 2;
+    final halfHeight = last.height / 2;
 
     final pivot = switch (end.direction) {
-      Direction.right => Offset(last.center.dx + halfLong, last.center.dy + halfShort),
-      Direction.left => Offset(last.center.dx - halfLong, last.center.dy - halfShort),
-      Direction.up => Offset(last.center.dx - halfShort, last.center.dy - halfLong),
-      Direction.down => Offset(last.center.dx + halfShort, last.center.dy + halfLong),
+      // Estaba creciendo a la derecha → ahora hacia arriba.
+      // Conexión por el borde superior de la última ficha.
+      Direction.right => Offset(last.center.dx, last.center.dy - halfHeight),
+      // Estaba creciendo hacia arriba → ahora hacia la izquierda.
+      // Conexión por el borde izquierdo de la última ficha.
+      Direction.up => Offset(last.center.dx - halfWidth, last.center.dy),
+      // Estaba creciendo a la izquierda → ahora hacia abajo.
+      // Conexión por el borde inferior de la última ficha.
+      Direction.left => Offset(last.center.dx, last.center.dy + halfHeight),
+      // Estaba creciendo hacia abajo → ahora hacia la derecha.
+      // Conexión por el borde derecho de la última ficha.
+      Direction.down => Offset(last.center.dx + halfWidth, last.center.dy),
     };
 
     end.direction = _nextDirection(end.direction);

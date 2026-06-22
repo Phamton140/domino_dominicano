@@ -39,13 +39,19 @@ class BoardView extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // El BoardLayout coloca la primera ficha en (0, 0) en el espacio
-        // virtual. Las siguientes se calculan relativas a ella.
+        // El BoardLayout coloca la primera ficha en el centro del
+        // tableBounds y rota la dirección (formando la Z clásica
+        // del dominó) cuando la siguiente ficha está a punto de
+        // colapsar con el borde. Usamos el área visible como
+        // tableBounds para activar el patrón en Z. allowOverflow
+        // permite que fichas que excedan el área se sigan renderizando
+        // (el InteractiveViewer permite pan/zoom).
         final layout = BoardLayout(
           moves: moves,
           starterPosition: starterPosition,
           squareSize: kBoardTileSquareSize,
-          tableBounds: const Rect.fromLTWH(-2000, -2000, 4000, 4000),
+          tableBounds: Rect.fromLTWH(0, 0, constraints.maxWidth, constraints.maxHeight),
+          allowOverflow: true,
         );
         final geometries = layout.compute();
 
@@ -79,23 +85,24 @@ class BoardView extends StatelessWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    for (final g in geometries)
-                      Positioned(
-                        // Posición relativa al centro del área. La
-                        // primera ficha (g.center = 0, 0) queda en
-                        // (centerX, centerY). Las siguientes se
-                        // posicionan en torno a ese centro.
-                        left: centerX + g.center.dx - g.width / 2,
-                        top: centerY + g.center.dy - g.height / 2,
-                        width: g.width,
-                        height: g.height,
-                        child: DominoTileWidget.face(
-                          tile: g.move.tile,
-                          orientation: g.orientation,
-                          squareSize: g.squareSize,
-                          swapped: g.move.tileWasSwapped,
-                        ),
-                      ),
+                for (final g in geometries)
+                  Positioned(
+                    // Posición relativa al centro del área. La
+                    // primera ficha está en tableBounds.center;
+                    // la trasladamos al centro del área visible
+                    // (centerX, centerY). Las siguientes se
+                    // posicionan en torno a ese centro.
+                    left: centerX + (g.center.dx - areaWidth / 2) - g.width / 2,
+                    top: centerY + (g.center.dy - areaHeight / 2) - g.height / 2,
+                    width: g.width,
+                    height: g.height,
+                    child: DominoTileWidget.face(
+                      tile: g.move.tile,
+                      orientation: g.orientation,
+                      squareSize: g.squareSize,
+                      swapped: g.move.tileWasSwapped,
+                    ),
+                  ),
                     // Marcar el centro del área con un widget invisible
                     // para anclar el InteractiveViewer ahí. Sin esto,
                     // el viewer centra el contenido en su tamaño
