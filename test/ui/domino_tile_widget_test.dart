@@ -15,6 +15,9 @@ void main() {
               child: DominoTileWidget(
                 tile: DominoTile(3, 5),
                 orientation: TileOrientation.horizontal,
+                connectedEdge: ConnectedEdge.left,
+                connectedValue: 3,
+                freeValue: 5,
                 squareSize: 40,
               ),
             ),
@@ -36,6 +39,9 @@ void main() {
               child: DominoTileWidget(
                 tile: null,
                 orientation: TileOrientation.horizontal,
+                connectedEdge: ConnectedEdge.left,
+                connectedValue: 0,
+                freeValue: 0,
                 squareSize: 40,
               ),
             ),
@@ -56,6 +62,9 @@ void main() {
               child: DominoTileWidget(
                 tile: DominoTile(0, 0),
                 orientation: TileOrientation.horizontal,
+                connectedEdge: ConnectedEdge.left,
+                connectedValue: 0,
+                freeValue: 0,
                 squareSize: 40,
                 highlighted: true,
               ),

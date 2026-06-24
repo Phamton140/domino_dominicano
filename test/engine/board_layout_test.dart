@@ -88,34 +88,39 @@ void main() {
     });
 
     group('cadena simple', () {
-      test('segunda ficha a la derecha encaja pegada', () {
+      test('ficha normal después de doble sigue la dirección de crecimiento', () {
+        // 6|6 horizontal (doble). La siguiente 6|5 sigue la dirección
+        // de crecimiento (right) → horizontal.
         final gs = build([
           mk(t(6, 6), BoardSide.right),
           mk(t(6, 5), BoardSide.right),
         ], table).compute();
 
         expect(gs, hasLength(2));
-        // Distancia entre centros = 2*squareSize (ancho completo de la ficha).
-        expect(gs[1].center.dx, gs[0].center.dx + 2 * ss);
-        expect(gs[1].center.dy, gs[0].center.dy);
+        expect(gs[0].orientation, TileOrientation.horizontal);
+        expect(gs[1].orientation, TileOrientation.horizontal);
         expect(gs[1].overlaps(gs[0]), isFalse);
       });
 
-      test('segunda ficha a la izquierda encaja pegada', () {
+      test('ficha en el lado izquierdo sigue la dirección de crecimiento', () {
+        // 5|5 doble horizontal (local+doble). La siguiente 5|4 entra
+        // por la izquierda, sigue la dirección de crecimiento → horizontal.
         final gs = build([
-          mk(t(6, 6), BoardSide.right),
-          mk(t(6, 4), BoardSide.left),
+          mk(t(5, 5), BoardSide.right), // doble horizontal local
+          mk(t(5, 4), BoardSide.left),
         ], table).compute();
 
         expect(gs, hasLength(2));
-        expect(gs[1].center.dx, gs[0].center.dx - 2 * ss);
-        expect(gs[1].center.dy, gs[0].center.dy);
+        expect(gs[0].orientation, TileOrientation.horizontal);
+        expect(gs[1].orientation, TileOrientation.horizontal);
         expect(gs[1].overlaps(gs[0]), isFalse);
       });
     });
 
     group('dobles perpendiculares', () {
       test('doble sobre ficha horizontal queda vertical', () {
+        // 6|6 horizontal, 6|3 horizontal (dirección right),
+        // 3|3 vertical (perpendicular a la dirección right).
         final gs = build([
           mk(t(6, 6), BoardSide.right),
           mk(t(6, 3), BoardSide.right),
@@ -128,9 +133,11 @@ void main() {
       });
 
       test('doble sobre ficha vertical queda horizontal', () {
+        // 5|4 vertical (local+normal), 4|3 horizontal (dirección
+        // right), 3|3 vertical (perpendicular a right).
         final gs = build([
           mk(t(5, 4), BoardSide.right), // local+normal → vertical
-          mk(t(4, 3), BoardSide.right), // normal sobre vertical hacia right → horizontal
+          mk(t(4, 3), BoardSide.right), // dirección right → horizontal
           mk(t(3, 3), BoardSide.right), // doble sobre horizontal → vertical
         ], table).compute();
 

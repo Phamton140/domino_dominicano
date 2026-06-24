@@ -14,27 +14,40 @@ import '../theme.dart';
 /// orientación. Se usa en la mano local para que las fichas se vean más
 /// "rellenas" sin la proporción 1:2 de una ficha real de dominó.
 ///
-/// Si [swapped] es true, la ficha fue invertida por el motor para
-/// conectar con el extremo abierto. En ese caso, los pips se dibujan
-/// en el orden visual swap (left↔right).
+/// El widget NO deduce nada: recibe [connectedValue] y [freeValue]
+/// directamente, y los coloca en las posiciones visuales correctas
+/// según [orientation] y [connectedEdge]. Toda la lógica de inversión
+/// la resuelve [BoardLayout] antes de invocar al widget.
 class DominoTileWidget extends StatelessWidget {
   final DominoTile? tile;
   final TileOrientation orientation;
+  final ConnectedEdge connectedEdge;
+
+  /// Valor del modelo que se dibuja en el borde conectado a la ficha
+  /// anterior. Lo calcula [BoardLayout] a partir de [Move.tileWasSwapped]
+  /// y la dirección de crecimiento.
+  final int connectedValue;
+
+  /// Valor del modelo que se dibuja en el borde libre (el opuesto al
+  /// conectado). Lo calcula [BoardLayout].
+  final int freeValue;
+
   final double squareSize;
   final bool highlighted;
   final bool dim;
   final bool compact;
-  final bool swapped;
 
   const DominoTileWidget({
     super.key,
     required this.tile,
     required this.orientation,
+    required this.connectedEdge,
+    required this.connectedValue,
+    required this.freeValue,
     required this.squareSize,
     this.highlighted = false,
     this.dim = false,
     this.compact = false,
-    this.swapped = false,
   });
 
   /// Constructor conveniente para dibujar la mano del jugador local
@@ -43,19 +56,23 @@ class DominoTileWidget extends StatelessWidget {
     Key? key,
     required DominoTile tile,
     required TileOrientation orientation,
+    required ConnectedEdge connectedEdge,
+    required int connectedValue,
+    required int freeValue,
     required double squareSize,
     bool highlighted = false,
     bool compact = false,
-    bool swapped = false,
   }) {
     return DominoTileWidget(
       key: key,
       tile: tile,
       orientation: orientation,
+      connectedEdge: connectedEdge,
+      connectedValue: connectedValue,
+      freeValue: freeValue,
       squareSize: squareSize,
       highlighted: highlighted,
       compact: compact,
-      swapped: swapped,
     );
   }
 
@@ -72,6 +89,9 @@ class DominoTileWidget extends StatelessWidget {
       key: key,
       tile: null,
       orientation: orientation,
+      connectedEdge: ConnectedEdge.left,
+      connectedValue: 0,
+      freeValue: 0,
       squareSize: squareSize,
       dim: dim,
       compact: compact,
@@ -114,14 +134,48 @@ class DominoTileWidget extends StatelessWidget {
             ),
         ],
       ),
-      child: tile == null ? const SizedBox.shrink() : _PipsLayout(
-        left: swapped ? tile!.right : tile!.left,
-        right: swapped ? tile!.left : tile!.right,
-        squareSize: squareSize,
-        orientation: orientation,
-        compact: compact,
-      ),
+      child: tile == null
+          ? const SizedBox.shrink()
+          : _PipsLayout(
+              firstValue: _firstValue,
+              secondValue: _secondValue,
+              squareSize: squareSize,
+              orientation: orientation,
+              compact: compact,
+            ),
     );
+  }
+
+  /// Valor que se dibuja en la posición visual "primera":
+  /// - horizontal: izquierda
+  /// - vertical: arriba
+  int get _firstValue {
+    if (compact) return connectedValue;
+    if (orientation == TileOrientation.horizontal) {
+      return connectedEdge == ConnectedEdge.left
+          ? connectedValue
+          : freeValue;
+    }
+    // vertical
+    return connectedEdge == ConnectedEdge.top
+        ? connectedValue
+        : freeValue;
+  }
+
+  /// Valor que se dibuja en la posición visual "segunda":
+  /// - horizontal: derecha
+  /// - vertical: abajo
+  int get _secondValue {
+    if (compact) return freeValue;
+    if (orientation == TileOrientation.horizontal) {
+      return connectedEdge == ConnectedEdge.left
+          ? freeValue
+          : connectedValue;
+    }
+    // vertical
+    return connectedEdge == ConnectedEdge.top
+        ? freeValue
+        : connectedValue;
   }
 
   Color _faceColor() {
@@ -213,16 +267,20 @@ extension on _PipPos {
 
 /// Componente que dibuja las dos mitades de una ficha con su línea
 /// divisoria central.
+///
+/// [firstValue] es el valor que se dibuja en la posición visual "primera"
+/// (izquierda en horizontal, arriba en vertical). [secondValue] es el
+/// valor que se dibuja en la posición "segunda" (derecha o abajo).
 class _PipsLayout extends StatelessWidget {
-  final int left;
-  final int right;
+  final int firstValue;
+  final int secondValue;
   final double squareSize;
   final TileOrientation orientation;
   final bool compact;
 
   const _PipsLayout({
-    required this.left,
-    required this.right,
+    required this.firstValue,
+    required this.secondValue,
     required this.squareSize,
     required this.orientation,
     this.compact = false,
@@ -236,7 +294,7 @@ class _PipsLayout extends StatelessWidget {
         children: [
           Expanded(
             child: _PipLayout(
-              value: left,
+              value: firstValue,
               size: squareSize,
             ),
           ),
@@ -246,7 +304,7 @@ class _PipsLayout extends StatelessWidget {
           ),
           Expanded(
             child: _PipLayout(
-              value: right,
+              value: secondValue,
               size: squareSize,
             ),
           ),
@@ -261,7 +319,7 @@ class _PipsLayout extends StatelessWidget {
         children: [
           Expanded(
             child: _PipLayout(
-              value: left,
+              value: firstValue,
               size: squareSize,
             ),
           ),
@@ -271,7 +329,7 @@ class _PipsLayout extends StatelessWidget {
           ),
           Expanded(
             child: _PipLayout(
-              value: right,
+              value: secondValue,
               size: squareSize,
             ),
           ),
@@ -285,7 +343,7 @@ class _PipsLayout extends StatelessWidget {
       children: [
         Expanded(
           child: _PipLayout(
-            value: left,
+            value: firstValue,
             size: squareSize,
           ),
         ),
@@ -295,7 +353,7 @@ class _PipsLayout extends StatelessWidget {
         ),
         Expanded(
           child: _PipLayout(
-            value: right,
+            value: secondValue,
             size: squareSize,
           ),
         ),

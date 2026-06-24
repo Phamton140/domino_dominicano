@@ -147,6 +147,14 @@ class _HandTileButton extends StatelessWidget {
     final tileWidget = DominoTileWidget.face(
       tile: tile,
       orientation: TileOrientation.vertical,
+      // En la mano local no hay "conexión" con una ficha anterior:
+      // ambas mitades se muestran como una ficha vertical compacta.
+      // La mano del local usa orientación vertical con `compact: true`,
+      // por lo que el widget no necesita connectedEdge ni valores
+      // resueltos: los calcula él mismo a partir del modelo.
+      connectedEdge: ConnectedEdge.left,
+      connectedValue: tile.left,
+      freeValue: tile.right,
       squareSize: squareSize,
       highlighted: isSelected,
     );

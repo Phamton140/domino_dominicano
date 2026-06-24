@@ -18,17 +18,50 @@ enum Direction {
   down,
 }
 
+/// Borde físico de una ficha que está conectado al extremo anterior
+/// de la cadena. Lo calcula [BoardLayout] a partir de la dirección de
+/// crecimiento, y lo consume [DominoTileWidget] para decidir qué valor
+/// del modelo [DominoTile] se dibuja en cada mitad visual.
+enum ConnectedEdge {
+  /// Borde izquierdo de la ficha.
+  left,
+
+  /// Borde derecho de la ficha.
+  right,
+
+  /// Borde superior de la ficha.
+  top,
+
+  /// Borde inferior de la ficha.
+  bottom,
+}
+
 /// Geometría calculada de una ficha colocada sobre la mesa.
 class TileGeometry {
   final Move move;
   final Offset center;
   final TileOrientation orientation;
+  final ConnectedEdge connectedEdge;
+
+  /// Valor del modelo [DominoTile] que se dibuja en el borde conectado
+  /// a la ficha anterior. Lo calcula [BoardLayout] a partir de
+  /// [Move.tileWasSwapped] y de la dirección de crecimiento, para que
+  /// el widget NO tenga que razonar sobre la inversión lógica.
+  final int connectedValue;
+
+  /// Valor del modelo [DominoTile] que se dibuja en el borde libre
+  /// (opuesto al conectado). Lo calcula [BoardLayout].
+  final int freeValue;
+
   final double _squareSize;
 
   const TileGeometry({
     required this.move,
     required this.center,
     required this.orientation,
+    required this.connectedEdge,
+    required this.connectedValue,
+    required this.freeValue,
     required double squareSize,
   }) : _squareSize = squareSize;
 
@@ -59,7 +92,9 @@ class TileGeometry {
 
   @override
   String toString() =>
-      'TileGeometry(${move.tile}, center: $center, orientation: $orientation)';
+      'TileGeometry(${move.tile}, center: $center, orientation: $orientation, '
+      'connectedEdge: $connectedEdge, connectedValue: $connectedValue, '
+      'freeValue: $freeValue)';
 }
 
 /// Estado de crecimiento de uno de los extremos de la mesa.
@@ -125,6 +160,11 @@ class BoardLayout {
       move: firstMove,
       center: tableBounds.center,
       orientation: firstOrientation,
+      // La primera ficha no conecta con nada; el borde "conectado"
+      // es arbitrario y no se usa para renderizar.
+      connectedEdge: ConnectedEdge.left,
+      connectedValue: firstMove.tile.left,
+      freeValue: firstMove.tile.right,
       squareSize: squareSize,
     );
     geometries.add(firstGeometry);
@@ -197,10 +237,24 @@ class BoardLayout {
         end.direction,
         orientation,
       );
+      final connectedEdge = _connectedEdgeForDirection(end.direction);
+      // El Move.tileWasSwapped indica qué cara del modelo DominoTile
+      // (left o right) está en el extremo lógico de la cadena que
+      // conecta con la ficha anterior. Combinado con connectedEdge,
+      // sabemos qué cara va en el borde físico conectado.
+      final connectedValue = move.tileWasSwapped
+          ? move.tile.right
+          : move.tile.left;
+      final freeValue = move.tileWasSwapped
+          ? move.tile.left
+          : move.tile.right;
       final geometry = TileGeometry(
         move: move,
         center: center,
         orientation: orientation,
+        connectedEdge: connectedEdge,
+        connectedValue: connectedValue,
+        freeValue: freeValue,
         squareSize: squareSize,
       );
 
@@ -262,19 +316,32 @@ class BoardLayout {
     end.connectionPoint = pivot;
   }
 
-  /// Orientación de [tile] cuando se coloca saliendo de [end].
+  /// Orientación visual de [tile] cuando se coloca saliendo de [end].
   ///
-  /// Reglas:
-  /// - Doble: perpendicular a la última ficha del extremo.
-  /// - Ficha normal: sigue la dirección de crecimiento (eje largo en la
-  ///   dirección de avance).
+  /// Reglas (separadas en conceptos independientes):
+  ///
+  /// 1. **Dirección de crecimiento** (`end.direction`): lógica de la
+  ///    cadena. RIGHT/UP/LEFT/DOWN.
+  /// 2. **Orientación visual de la ficha**: depende SOLO de la dirección
+  ///    de crecimiento:
+  ///    - right/left → horizontal (eje largo horizontal)
+  ///    - up/down   → vertical (eje largo vertical)
+  /// 3. **Orden de valores** dentro de la ficha: depende de qué cara
+  ///    conecta con el extremo. Lo maneja el flag `tileWasSwapped`
+  ///    calculado por el `Board` (no esta función).
+  /// 4. **Dobles**: excepción visual únicamente. Se renderizan
+  ///    perpendiculares a la dirección de crecimiento, pero NO afectan
+  ///    la dirección lógica ni la orientación de fichas siguientes.
   TileOrientation _tileOrientation(_EndState end, DominoTile tile) {
+    // Concepto 4: dobles son perpendiculares a la dirección de
+    // crecimiento actual.
     if (tile.isDouble) {
-      return end.lastGeometry.orientation == TileOrientation.horizontal
+      return end.direction == Direction.right || end.direction == Direction.left
           ? TileOrientation.vertical
           : TileOrientation.horizontal;
     }
 
+    // Concepto 2: fichas normales siguen la dirección de crecimiento.
     return switch (end.direction) {
       Direction.right || Direction.left => TileOrientation.horizontal,
       Direction.up || Direction.down => TileOrientation.vertical,
@@ -352,6 +419,27 @@ class BoardLayout {
       Direction.up => Direction.left,
       Direction.left => Direction.down,
       Direction.down => Direction.right,
+    };
+  }
+
+  /// Borde físico de la ficha que queda conectado al extremo anterior
+  /// de la cadena, según la dirección de crecimiento.
+  ///
+  /// Reglas:
+  /// - `right` → la ficha se coloca a la derecha del connectionPoint,
+  ///   tocando por su borde izquierdo.
+  /// - `left`  → la ficha se coloca a la izquierda, tocando por su
+  ///   borde derecho.
+  /// - `up`    → la ficha se coloca arriba, tocando por su borde
+  ///   inferior.
+  /// - `down`  → la ficha se coloca abajo, tocando por su borde
+  ///   superior.
+  ConnectedEdge _connectedEdgeForDirection(Direction direction) {
+    return switch (direction) {
+      Direction.right => ConnectedEdge.left,
+      Direction.left => ConnectedEdge.right,
+      Direction.up => ConnectedEdge.bottom,
+      Direction.down => ConnectedEdge.top,
     };
   }
 }

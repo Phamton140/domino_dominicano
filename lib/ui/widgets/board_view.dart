@@ -99,8 +99,10 @@ class BoardView extends StatelessWidget {
                     child: DominoTileWidget.face(
                       tile: g.move.tile,
                       orientation: g.orientation,
+                      connectedEdge: g.connectedEdge,
+                      connectedValue: g.connectedValue,
+                      freeValue: g.freeValue,
                       squareSize: g.squareSize,
-                      swapped: g.move.tileWasSwapped,
                     ),
                   ),
                     // Marcar el centro del área con un widget invisible

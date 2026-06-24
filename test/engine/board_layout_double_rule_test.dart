@@ -20,12 +20,12 @@ void main() {
       );
 
   group('regla perpendicular a dobles', () {
-    test('local+doble sale horizontal; doble siguiente va vertical', () {
+    test('local+doble sale horizontal; ficha normal siguiente va horizontal (sigue la dirección de crecimiento)', () {
       final layout = BoardLayout(
         moves: [
           mk(const DominoTile(6, 6), BoardSide.right), // doble, local → horizontal
-          mk(const DominoTile(6, 3), BoardSide.right), // normal, sigue dirección right → horizontal
-          mk(const DominoTile(3, 3), BoardSide.right), // doble, perpendicular al anterior → vertical
+          mk(const DominoTile(6, 3), BoardSide.right), // normal, dirección right → horizontal
+          mk(const DominoTile(3, 3), BoardSide.right), // doble, perpendicular a la dirección right → vertical
         ],
         starterPosition: PlayerPosition.bottom,
         squareSize: 30,
@@ -37,12 +37,12 @@ void main() {
       expect(gs[2].orientation, TileOrientation.vertical);
     });
 
-    test('adversario+doble sale vertical; doble siguiente va horizontal', () {
+    test('adversario+doble sale vertical; ficha normal siguiente va vertical (sigue la dirección de crecimiento)', () {
       final layout = BoardLayout(
         moves: [
           mk(const DominoTile(6, 6), BoardSide.right), // doble, adversario → vertical
-          mk(const DominoTile(6, 3), BoardSide.right), // normal, sigue dirección right → horizontal
-          mk(const DominoTile(3, 3), BoardSide.right), // doble, perpendicular al anterior → vertical
+          mk(const DominoTile(6, 3), BoardSide.right), // normal, dirección right → horizontal (NO vertical)
+          mk(const DominoTile(3, 3), BoardSide.right), // doble, perpendicular a la dirección right → vertical
         ],
         starterPosition: PlayerPosition.right,
         squareSize: 30,
